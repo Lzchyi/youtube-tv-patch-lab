@@ -1,37 +1,37 @@
-name: Inspect supplied APK
+name: Investigate YouTube TV APKM
 on:
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  inspect:
+  investigate:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install JADX
+      - name: Install inspection tools
         run: |
           sudo apt-get update
           sudo apt-get install -y jadx aapt
-      - name: Decode supplied APK secret
+      - name: Download user-provided bundle from private temporary URL
         env:
-          APK_B64: ${{ secrets.YOUTUBE_TV_APK_B64 }}
+          APK_SOURCE_URL: ${{ secrets.APK_SOURCE_URL }}
         run: |
-          test -n "$APK_B64" || { echo 'Missing YOUTUBE_TV_APK_B64 secret; normal APKs exceed GitHub secret size limits. Use local analysis until secure large-file input is implemented.'; exit 1; }
-          printf '%s' "$APK_B64" | base64 --decode > input.apk
-          test -s input.apk
-      - name: Analyse APK
-        run: python3 scripts/analyze_apk.py input.apk --output report
-      - name: Remove original APK
+          test -n "$APK_SOURCE_URL" || { echo "Configure APK_SOURCE_URL as a secret with a short-lived HTTPS direct download URL"; exit 1; }
+          python3 scripts/download_input.py
+      - name: Analyse supplied bundle
+        run: python3 scripts/analyze_bundle.py input.apkm --output report
+      - name: Delete source files
         if: always()
-        run: rm -f input.apk
-      - uses: actions/upload-artifact@v4
+        run: rm -f input.apkm
+      - name: Upload analysis only
         if: always()
+        uses: actions/upload-artifact@v4
         with:
-          name: research-report
+          name: youtube-tv-research
           path: report/
+          retention-days: 3
           if-no-files-found: warn
-          retention-days: 7
