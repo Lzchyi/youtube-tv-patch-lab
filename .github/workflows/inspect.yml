@@ -1,0 +1,37 @@
+name: Inspect supplied APK
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install JADX
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jadx aapt
+      - name: Decode supplied APK secret
+        env:
+          APK_B64: ${{ secrets.YOUTUBE_TV_APK_B64 }}
+        run: |
+          test -n "$APK_B64" || { echo 'Missing YOUTUBE_TV_APK_B64 secret; normal APKs exceed GitHub secret size limits. Use local analysis until secure large-file input is implemented.'; exit 1; }
+          printf '%s' "$APK_B64" | base64 --decode > input.apk
+          test -s input.apk
+      - name: Analyse APK
+        run: python3 scripts/analyze_apk.py input.apk --output report
+      - name: Remove original APK
+        if: always()
+        run: rm -f input.apk
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: research-report
+          path: report/
+          if-no-files-found: warn
+          retention-days: 7
