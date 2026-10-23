@@ -1,47 +1,33 @@
-# YouTube TV Playback-Speed Research Lab
+# YouTube TV Patch Lab
 
-> **Status: Research only. No working playback-speed patch has been identified or verified.**
+**Status: APKM investigation pipeline; no working playback-speed patch has been identified.**
 
-## Purpose
-This is an independent, non-commercial personal research project for investigating playback-speed availability in the official YouTube application on an Android TV device I own.
+Independent, non-commercial personal research into playback-speed availability on a personally owned Android TV.
 
 ## Disclaimer
-This project is **not affiliated with, endorsed by, or supported by Google, YouTube, Sony, or their affiliates**. All product names and trademarks belong to their respective owners.
+This project is not affiliated with, endorsed by, or supported by Google, YouTube, Sony, or APKMirror. All trademarks belong to their owners. This repository does not host proprietary YouTube APKs or modified YouTube binaries. Personal-use intent does not itself confer rights to redistribute or modify copyrighted software. You are responsible for applicable law, terms, and device safety.
 
-The repository contains research scripts and workflows only. It does **not** distribute proprietary YouTube APKs, copyrighted application assets, Google credentials, or modified YouTube binaries. Users must supply application files they are authorised to analyse and comply with applicable laws and terms. Personal-use intent does not itself grant permission to copy, modify, or distribute proprietary software.
+## Investigation workflow
+The GitHub Actions workflow accepts an **authorised APKM file** through a short-lived HTTPS direct-download URL stored in repository Actions secret `APK_SOURCE_URL`. It downloads the file to the temporary runner, extracts `base.apk`, runs `aapt` and JADX, searches playback-speed-related references, and uploads only JSON/Markdown reports. **No patched APK is generated.**
 
-Research results and experimental modifications may be incomplete, unreliable, or incompatible. No claim is made that playback-speed restrictions can be bypassed. Use at your own risk; preserve a rollback path and do not disable device security protections.
+1. Keep the repository private.
+2. Place your APKM in temporary private file storage that provides a direct, expiring HTTPS download URL.
+3. In repository Settings → Secrets and variables → Actions, create secret `APK_SOURCE_URL` containing that URL.
+4. Run Actions → **Investigate YouTube TV APKM** → Run workflow.
+5. Download the `youtube-tv-research` artifact and review it.
+6. Delete/revoke the temporary download URL and repository secret after use.
 
-## Current capabilities
-- Inspect an APK locally without installing it.
-- Record SHA-256 and Android package metadata.
-- Generate a structured diagnostic report with JADX text-search findings.
-- Run a GitHub Actions research workflow on a **user-supplied** APK, without storing the APK as an artifact.
+**Security note:** Anyone who can edit the workflow can potentially access Actions secrets. Use only trusted collaborators. The APKM must not be committed. The source URL is not printed by the workflow, but the external file host will receive a download request.
 
-## Privacy and security
-- **Use a private repository.** GitHub Actions runners receive the supplied APK, and a public repository may expose workflow metadata.
-- Do not commit APKs, tokens, Google account information, or TV logs containing personal data.
-- Workflow artifacts contain only reports, not APKs or decoded source.
-- Review diagnostic reports before sharing; strings from an APK can include endpoints and identifiers.
-- The workflow is manually triggered; it does not download proprietary APKs from third-party mirrors.
-
-## Local analysis
-Requires Python 3.11+, Android SDK `aapt` (optional), and JADX (optional).
+## Local investigation (no upload needed)
+Install Python 3.11+, JADX and Android SDK `aapt`, then run:
 
 ```bash
-python3 scripts/analyze_apk.py /path/to/your/youtube-tv.apk --output report
+python3 scripts/analyze_bundle.py /path/to/youtube.apkm --output report
 ```
 
-## GitHub Actions
-1. Create a **private** GitHub repository and upload these project files.
-2. Do not commit your APK. For GitHub Actions, encode your legally obtained APK as base64 and save it in a repository secret named `YOUTUBE_TV_APK_B64`. **GitHub secrets have a 48 KB size limit**, so a normal YouTube APK will not fit. For real APKs, use local analysis until a secure larger-file input workflow is added.
-3. Open Actions → **Inspect supplied APK** → Run workflow after configuring a supported input method.
-4. Download the `research-report` artifact.
+## Target and compatibility
+Initial supplied version: 7.27.302, split APKM with `base.apk` and `split_config.armeabi_v7a.apk`. This variant requires Android API 32+. Check the TV's SDK level before attempting installation. See `research/2026-10-23-initial-inspection.md`.
 
-The workflow intentionally stops at investigation. A patch/build pipeline will only be added after identifying a reproducible restriction mechanism.
-
-## Planned investigation
-1. Capture device model, firmware, YouTube version, and exact error message.
-2. Compare current and historically working app versions from authorised copies.
-3. Identify whether local capability checks or remote configuration determine speed availability.
-4. Only then evaluate a narrow experimental patch, with installation and rollback testing.
+## Next technical milestone
+Trace actual references and call sites; distinguish local capability checks from remote configuration. Only build a narrow patch if there is evidence for a testable modification and a safe rollback procedure.
